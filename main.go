@@ -1,3 +1,7 @@
+// Copyright 2024 The Git User Manager Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -10,14 +14,16 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// main is the entry point of the application.
+// It sets up the CLI app and runs it.
 func main() {
 	app := &cli.App{
 		Name:  "gum",
 		Usage: "Git User Manager - Platform-agnostic tool for managing multiple Git identities",
 		Description: `gum is a platform-agnostic tool that works with any Git hosting service, 
-including but not limited to GitHub, GitLab, and Bitbucket. It manages your 
-local Git configurations and SSH keys, allowing you to switch between different 
-Git identities easily.`,
+					including but not limited to GitHub, GitLab, and Bitbucket. It manages your 
+					local Git configurations and SSH keys, allowing you to switch between different 
+					Git identities easily.`,
 		Commands: []*cli.Command{
 			{
 				Name:  "create",
@@ -60,6 +66,8 @@ Git identities easily.`,
 	}
 }
 
+// createSSHKey generates a new SSH key pair for the given email address.
+// It saves the key pair in the user's .ssh directory.
 func createSSHKey(c *cli.Context) error {
 	email := c.String("email")
 	homeDir, _ := os.UserHomeDir()
@@ -76,15 +84,24 @@ func createSSHKey(c *cli.Context) error {
 	return nil
 }
 
+// switchUser changes the global Git configuration to use the specified user
+// and adds the corresponding SSH key to the SSH agent.
 func switchUser(c *cli.Context) error {
 	name := c.String("name")
 	email := c.String("email")
 	homeDir, _ := os.UserHomeDir()
 	keyPath := filepath.Join(homeDir, ".ssh", fmt.Sprintf("id_rsa_%s", email))
 
-	// Add SSH key
-	cmd := exec.Command("ssh-add", keyPath)
+	// Clear existing SSH keys from the agent
+	cmd := exec.Command("ssh-add", "-D")
 	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error clearing SSH keys: %v\n%s", err, output)
+	}
+
+	// Add the new SSH key
+	cmd = exec.Command("ssh-add", keyPath)
+	output, err = cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error adding SSH key: %v\n%s", err, output)
 	}
