@@ -46,13 +46,13 @@ If you prefer to install from source or Homebrew is not available:
 ### Create a new SSH key
 
 ```bash
-gum create --email user@example.com
+gum create --alias user1 --email user@example.com --name "John Doe"
 ```
 
 ### Switch Git user
 
 ```bash
-gum switch --name "John Doe" --email user@example.com
+gum switch user1
 ```
 
 ## Contributing
