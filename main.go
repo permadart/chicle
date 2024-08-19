@@ -1,10 +1,7 @@
-// Copyright 2024 The Git User Manager Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
-
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -14,83 +11,154 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// main is the entry point of the application.
-// It sets up the CLI app and runs it.
+// UserConfig stores the configuration for each Git identity
+type UserConfig struct {
+	Name    string // Git user name
+	Email   string // Git user email
+	KeyPath string // Path to the SSH key file
+}
+
+// userConfigs is a map to store multiple user configurations
+var userConfigs map[string]UserConfig
+
+// loadConfigs reads the configuration file and populates userConfigs
+func loadConfigs() error {
+	homeDir, _ := os.UserHomeDir()
+	configPath := filepath.Join(homeDir, ".gum_config.json")
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// If the file doesn't exist, initialize an empty map
+			userConfigs = make(map[string]UserConfig)
+			return nil
+		}
+		return err
+	}
+
+	// Unmarshal JSON data into userConfigs
+	return json.Unmarshal(data, &userConfigs)
+}
+
+// saveConfigs writes the current userConfigs to the configuration file
+func saveConfigs() error {
+	homeDir, _ := os.UserHomeDir()
+	configPath := filepath.Join(homeDir, ".gum_config.json")
+
+	// Marshal userConfigs into JSON
+	data, err := json.MarshalIndent(userConfigs, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	// Write JSON data to the configuration file
+	return os.WriteFile(configPath, data, 0644)
+}
+
 func main() {
+	// Load existing configurations
+	err := loadConfigs()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Define the CLI application
 	app := &cli.App{
 		Name:  "gum",
 		Usage: "Git User Manager - Platform-agnostic tool for managing multiple Git identities",
-		Description: `gum is a platform-agnostic tool that works with any Git hosting service, 
-					including but not limited to GitHub, GitLab, and Bitbucket. It manages your 
-					local Git configurations and SSH keys, allowing you to switch between different 
-					Git identities easily.`,
 		Commands: []*cli.Command{
 			{
 				Name:  "create",
-				Usage: "Create a new SSH key",
+				Usage: "Create a new SSH key and Git identity",
 				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "alias",
+						Aliases:  []string{"a"},
+						Usage:    "Alias for the Git identity",
+						Required: true,
+					},
 					&cli.StringFlag{
 						Name:     "email",
 						Aliases:  []string{"e"},
 						Usage:    "Email address for the SSH key",
 						Required: true,
 					},
-				},
-				Action: createSSHKey,
-			},
-			{
-				Name:  "switch",
-				Usage: "Switch Git user",
-				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:     "name",
 						Aliases:  []string{"n"},
 						Usage:    "Git user name",
 						Required: true,
 					},
-					&cli.StringFlag{
-						Name:     "email",
-						Aliases:  []string{"e"},
-						Usage:    "Git user email",
-						Required: true,
-					},
 				},
-				Action: switchUser,
+				Action: createIdentity,
+			},
+			{
+				Name:      "switch",
+				Usage:     "Switch Git user",
+				ArgsUsage: "ALIAS",
+				Action:    switchUser,
+			},
+			{
+				Name:   "list",
+				Usage:  "List all stored Git identities",
+				Action: listIdentities,
 			},
 		},
 	}
 
-	err := app.Run(os.Args)
+	// Run the CLI application
+	err = app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-// createSSHKey generates a new SSH key pair for the given email address.
-// It saves the key pair in the user's .ssh directory.
-func createSSHKey(c *cli.Context) error {
+// createIdentity handles the creation of a new Git identity
+func createIdentity(c *cli.Context) error {
+	alias := c.String("alias")
 	email := c.String("email")
-	homeDir, _ := os.UserHomeDir()
-	keyPath := filepath.Join(homeDir, ".ssh", fmt.Sprintf("id_rsa_%s", email))
+	name := c.String("name")
 
+	homeDir, _ := os.UserHomeDir()
+	keyPath := filepath.Join(homeDir, ".ssh", fmt.Sprintf("id_rsa_%s", alias))
+
+	// Generate a new SSH key
 	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-b", "4096", "-C", email, "-f", keyPath, "-N", "")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error creating SSH key: %v\n%s", err, output)
 	}
 
+	// Store the new configuration
+	userConfigs[alias] = UserConfig{
+		Name:    name,
+		Email:   email,
+		KeyPath: keyPath,
+	}
+
+	// Save the updated configurations
+	err = saveConfigs()
+	if err != nil {
+		return fmt.Errorf("error saving configuration: %v", err)
+	}
+
+	fmt.Printf("Identity created for alias '%s' with email '%s' and name '%s'\n", alias, email, name)
 	fmt.Printf("SSH key created successfully: %s\n", keyPath)
 	fmt.Println("Remember to add this key to your Git hosting service.")
 	return nil
 }
 
-// switchUser changes the global Git configuration to use the specified user
-// and adds the corresponding SSH key to the SSH agent.
+// switchUser handles switching to a different Git identity
 func switchUser(c *cli.Context) error {
-	name := c.String("name")
-	email := c.String("email")
-	homeDir, _ := os.UserHomeDir()
-	keyPath := filepath.Join(homeDir, ".ssh", fmt.Sprintf("id_rsa_%s", email))
+	if c.NArg() < 1 {
+		return fmt.Errorf("missing alias argument. Usage: gum switch ALIAS")
+	}
+	alias := c.Args().First()
+
+	config, ok := userConfigs[alias]
+	if !ok {
+		return fmt.Errorf("no identity found for alias '%s'", alias)
+	}
 
 	// Clear existing SSH keys from the agent
 	cmd := exec.Command("ssh-add", "-D")
@@ -100,34 +168,37 @@ func switchUser(c *cli.Context) error {
 	}
 
 	// Add the new SSH key
-	cmd = exec.Command("ssh-add", keyPath)
+	cmd = exec.Command("ssh-add", config.KeyPath)
 	output, err = cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error adding SSH key: %v\n%s", err, output)
 	}
 
-	// Check for existing platform-specific configurations
-	existingConfig, err := exec.Command("git", "config", "--global", "--get-regexp", "^url\\..*\\.insteadOf").Output()
-	if err == nil && len(existingConfig) > 0 {
-		fmt.Println("Warning: Detected existing platform-specific Git configurations. These will not be modified.")
-	}
-
 	// Set Git configs
 	configs := [][]string{
-		{"user.name", name},
-		{"user.email", email},
-		{"core.sshCommand", fmt.Sprintf("ssh -i %s", keyPath)},
+		{"user.name", config.Name},
+		{"user.email", config.Email},
+		{"core.sshCommand", fmt.Sprintf("ssh -i %s", config.KeyPath)},
 	}
 
-	for _, config := range configs {
-		cmd = exec.Command("git", "config", "--global", config[0], config[1])
+	for _, cfg := range configs {
+		cmd = exec.Command("git", "config", "--global", cfg[0], cfg[1])
 		output, err = cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("error setting Git config %s: %v\n%s", config[0], err, output)
+			return fmt.Errorf("error setting Git config %s: %v\n%s", cfg[0], err, output)
 		}
 	}
 
-	fmt.Printf("Switched to user: %s (%s)\n", name, email)
+	fmt.Printf("Switched to user: %s (%s)\n", config.Name, config.Email)
 	fmt.Println("This configuration will work with any Git hosting service.")
+	return nil
+}
+
+// listIdentities displays all stored Git identities
+func listIdentities(c *cli.Context) error {
+	fmt.Println("Stored Git Identities:")
+	for alias, config := range userConfigs {
+		fmt.Printf("- Alias: %s\n  Name: %s\n  Email: %s\n  Key: %s\n\n", alias, config.Name, config.Email, config.KeyPath)
+	}
 	return nil
 }

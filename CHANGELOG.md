@@ -5,19 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.0.1+2] - 2024-08-19
 
 ### Added
-- Initial release of gum (Git User Manager)
-- Command to create SSH keys for different Git identities
-- Command to switch between Git user configurations
-- Support for managing global Git configurations and SSH keys
+
+- Alias support for creating and switching between Git identities
+- New list command to display all stored identities
+- Persistent storage of user configurations
 
 ### Changed
 
+- create command now requires an alias and stores the configuration
+- switch command now works with aliases instead of individual parameters
+
 ### Fixed
 
-## [1.0.0] - 2024-08-19
+## [0.0.1] - 2024-08-19
 
 ### Added
 - Initial release of gum
