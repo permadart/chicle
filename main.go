@@ -277,7 +277,7 @@ func switchUser(c *cli.Context) error {
 	isGlobal := c.Bool("global")
 
 	if !isGlobal && !isGitRepository() {
-		return fmt.Errorf("not in a Git repository. Use -g flag to switch globally")
+		return fmt.Errorf("not in a Git repository. Use --global flag to switch globally")
 	}
 
 	var config UserConfig
