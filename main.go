@@ -108,6 +108,12 @@ func main() {
 				Usage:  "List all stored Git identities",
 				Action: listIdentities,
 			},
+			{
+				Name:      "delete",
+				Usage:     "Delete a Git identity",
+				ArgsUsage: "ALIAS",
+				Action:    deleteIdentity,
+			},
 		},
 	}
 
@@ -159,6 +165,32 @@ func createIdentity(c *cli.Context) error {
 	if existingKey == "" {
 		fmt.Println("Remember to add this key to your Git hosting service.")
 	}
+	return nil
+}
+
+// deleteIdentity handles the deletion of a Git identity
+func deleteIdentity(c *cli.Context) error {
+	if c.NArg() < 1 {
+		return fmt.Errorf("missing alias argument. Usage: gum delete ALIAS")
+	}
+	alias := c.Args().First()
+
+	config, ok := userConfigs[alias]
+	if !ok {
+		return fmt.Errorf("no identity found for alias '%s'", alias)
+	}
+
+	// Remove the identity from userConfigs
+	delete(userConfigs, alias)
+
+	// Save the updated configurations
+	if err := saveConfigs(); err != nil {
+		return fmt.Errorf("error saving configuration: %v", err)
+	}
+
+	fmt.Printf("Identity '%s' (%s) has been deleted.\n", alias, config.Email)
+	fmt.Println("Note: The associated SSH key file was not deleted. You may want to remove it manually if it's no longer needed.")
+
 	return nil
 }
 

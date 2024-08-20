@@ -62,6 +62,11 @@ gum create --alias user2 --email user2@example.com --name "Jane Doe" --key ~/.ss
 gum switch user1
 ```
 
+### Delete a Git identity
+```bash
+gum delete user1
+```
+
 ### List all identities
 
 ```bash
