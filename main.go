@@ -276,8 +276,11 @@ func switchUser(c *cli.Context) error {
 	alias := c.Args().First()
 	isGlobal := c.Bool("global")
 
-	if !isGlobal && !isGitRepository() {
-		return fmt.Errorf("not in a Git repository. Use --global flag to switch globally")
+	// Check if we're in a Git repository only if we're not switching globally
+	if !isGlobal {
+		if !isGitRepository() {
+			return fmt.Errorf("not in a Git repository. Use --global flag to switch globally")
+		}
 	}
 
 	var config UserConfig
@@ -285,16 +288,14 @@ func switchUser(c *cli.Context) error {
 
 	if isGlobal {
 		config, ok = configs.Global[alias]
+		if !ok {
+			return fmt.Errorf("no global identity found for alias '%s'", alias)
+		}
 	} else {
 		config, ok = configs.Local[alias]
-	}
-
-	if !ok {
-		scopeType := "local"
-		if isGlobal {
-			scopeType = "global"
+		if !ok {
+			return fmt.Errorf("no local identity found for alias '%s'", alias)
 		}
-		return fmt.Errorf("no %s identity found for alias '%s'", scopeType, alias)
 	}
 
 	// Clear existing SSH keys from the agent
