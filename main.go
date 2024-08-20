@@ -12,7 +12,7 @@ import (
 )
 
 // Version of the chicle tool
-const Version = "0.0.1"
+const Version = "0.0.2"
 
 // UserConfig stores the configuration for each Git identity
 type UserConfig struct {
