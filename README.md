@@ -5,6 +5,7 @@ gum is a platform-agnostic command-line tool for managing multiple Git identitie
 ## Features
 
 - Create SSH keys for different Git identities
+- Add existing SSH keys to new identities
 - Switch between Git user configurations easily
 - Works with any Git hosting service
 - Manages global Git configurations and SSH keys
@@ -43,16 +44,28 @@ If you prefer to install from source or Homebrew is not available:
 
 ## Usage
 
-### Create a new SSH key
+### Create a new SSH key and identity
 
 ```bash
 gum create --alias user1 --email user@example.com --name "John Doe"
+```
+
+### Add an existing SSH key to a new identity
+
+```bash
+gum create --alias user2 --email user2@example.com --name "Jane Doe" --key ~/.ssh/id_rsa_user2
 ```
 
 ### Switch Git user
 
 ```bash
 gum switch user1
+```
+
+### List all identities
+
+```bash
+gum list
 ```
 
 ## Contributing

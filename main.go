@@ -69,7 +69,7 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:  "create",
-				Usage: "Create a new SSH key and Git identity",
+				Usage: "Create a new SSH key and Git identity or add an existing key",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:     "alias",
@@ -88,6 +88,11 @@ func main() {
 						Aliases:  []string{"n"},
 						Usage:    "Git user name",
 						Required: true,
+					},
+					&cli.StringFlag{
+						Name:    "key",
+						Aliases: []string{"k"},
+						Usage:   "Path to an existing SSH key (optional)",
 					},
 				},
 				Action: createIdentity,
@@ -118,15 +123,23 @@ func createIdentity(c *cli.Context) error {
 	alias := c.String("alias")
 	email := c.String("email")
 	name := c.String("name")
+	existingKey := c.String("key")
 
-	homeDir, _ := os.UserHomeDir()
-	keyPath := filepath.Join(homeDir, ".ssh", fmt.Sprintf("id_rsa_%s", alias))
+	var keyPath string
 
-	// Generate a new SSH key
-	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-b", "4096", "-C", email, "-f", keyPath, "-N", "")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("error creating SSH key: %v\n%s", err, output)
+	if existingKey != "" {
+		// Check if the provided key exists and is valid
+		if err := validateExistingKey(existingKey); err != nil {
+			return err
+		}
+		keyPath = existingKey
+	} else {
+		// Generate a new SSH key
+		homeDir, _ := os.UserHomeDir()
+		keyPath = filepath.Join(homeDir, ".ssh", fmt.Sprintf("id_rsa_%s", alias))
+		if err := generateSSHKey(email, keyPath); err != nil {
+			return err
+		}
 	}
 
 	// Store the new configuration
@@ -137,14 +150,41 @@ func createIdentity(c *cli.Context) error {
 	}
 
 	// Save the updated configurations
-	err = saveConfigs()
-	if err != nil {
+	if err := saveConfigs(); err != nil {
 		return fmt.Errorf("error saving configuration: %v", err)
 	}
 
 	fmt.Printf("Identity created for alias '%s' with email '%s' and name '%s'\n", alias, email, name)
-	fmt.Printf("SSH key created successfully: %s\n", keyPath)
-	fmt.Println("Remember to add this key to your Git hosting service.")
+	fmt.Printf("SSH key path: %s\n", keyPath)
+	if existingKey == "" {
+		fmt.Println("Remember to add this key to your Git hosting service.")
+	}
+	return nil
+}
+
+// validateExistingKey checks if the provided key exists and is valid
+func validateExistingKey(keyPath string) error {
+	// Check if the file exists
+	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+		return fmt.Errorf("the specified key file does not exist: %s", keyPath)
+	}
+
+	// Check if the key is valid
+	cmd := exec.Command("ssh-keygen", "-l", "-f", keyPath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("the specified key is not a valid SSH key: %v", err)
+	}
+
+	return nil
+}
+
+// generateSSHKey creates a new SSH key
+func generateSSHKey(email, keyPath string) error {
+	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-b", "4096", "-C", email, "-f", keyPath, "-N", "")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error creating SSH key: %v\n%s", err, output)
+	}
 	return nil
 }
 
