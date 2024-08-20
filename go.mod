@@ -1,4 +1,4 @@
-module github.com/permadart/gum
+module github.com/permadart/chicle
 
 go 1.23.0
 

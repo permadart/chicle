@@ -1,0 +1,40 @@
+# Ignore the compiled binary
+/chicle
+
+# Ignore any executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Ignore test binary, built with `go test -c`
+*.test
+
+# Ignore output of the go coverage tool
+*.out
+
+# Ignore Go workspace file
+go.work
+
+# Ignore .DS_Store files on macOS
+.DS_Store
+
+# Ignore any .env files that might contain sensitive information
+*.env
+
+# Ignore the vendor directory if you're using Go modules
+/vendor/
+
+# Ignore IDE-specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Ignore log files
+*.log
+
+# Ignore the config file that stores user configurations
+.chicle_config.json

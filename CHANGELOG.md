@@ -5,49 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.1+4] - 2024-08-20
+## [0.0.1] - 2024-08-20
 
 ### Added
-- New delete command to remove Git identities by alias
-- Updated README.md with usage instructions for the delete command
-
-## [0.0.1+3] - 2024-08-20
-
-### Added
-
-- Support for adding existing SSH keys when creating a new identity
-- New --key flag in the create command to specify an existing SSH key
-- Validation of existing SSH keys before adding them to an identity
-
-### Changed
-
-- Updated README.md with new usage instructions for adding existing keys
-- Refactored createIdentity function to handle both new and existing keys
-
-## [0.0.1+2] - 2024-08-19
-
-### Added
-
-- Alias support for creating and switching between Git identities
-- New list command to display all stored identities
-- Persistent storage of user configurations
-
-### Changed
-
-- create command now requires an alias and stores the configuration
-- switch command now works with aliases instead of individual parameters
-
-### Fixed
-
-## [0.0.1] - 2024-08-19
-
-### Added
-- Initial release of gum
-- Create command for generating SSH keys
+- Initial release of chicle
+- Create command for generating SSH keys and creating Git identities
+  - Support for adding existing SSH keys when creating a new identity
+  - New --key flag in the create command to specify an existing SSH key
+  - Validation of existing SSH keys before adding them to an identity
 - Switch command for changing Git user configurations
-- README.md with usage instructions
+- Delete command to remove Git identities by alias
+- List command to display all stored identities
+- Persistent storage of user configurations
+- Alias support for creating and switching between Git identities
+- Global and local identity management
+- Unique alias protection across global and local scopes
+- Version checking functionality (--version flag)
+- README.md with comprehensive usage instructions
 - CHANGELOG.md to track changes
 - MIT License
 
-[Unreleased]: https://github.com/permadart/gum/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/permadart/gum/releases/tag/v1.0.0
+### Changed
+- The tool is now called chicle (previously had a different name)
+
+[0.0.1]: https://github.com/permadart/chicle/releases/tag/v0.0.1
