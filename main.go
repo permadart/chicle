@@ -76,15 +76,22 @@ func main() {
 
 	// Define the CLI application
 	app := &cli.App{
-		Name:    "chicle",
-		Usage:   "Git User Manager - Platform-agnostic tool for managing multiple Git identities",
-		Version: Version,
+		Name:  "chicle",
+		Usage: "Git User Manager - Platform-agnostic tool for managing multiple Git identities",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "version",
 				Aliases: []string{"v"},
 				Usage:   "Print the version",
 			},
+		},
+		Action: func(c *cli.Context) error {
+			if c.Bool("version") {
+				fmt.Printf("chicle version %s\n", Version)
+				return nil
+			}
+			cli.ShowAppHelp(c)
+			return nil
 		},
 		Commands: []*cli.Command{
 			{
