@@ -12,7 +12,7 @@ import (
 )
 
 // Version of the chicle tool
-const Version = "0.0.2"
+const Version = "0.0.3"
 
 // UserConfig stores the configuration for each Git identity
 type UserConfig struct {
@@ -29,6 +29,7 @@ type Configs struct {
 }
 
 var configs Configs
+var verbose bool
 
 // loadConfigs reads the configuration file and populates configs
 func loadConfigs() error {
@@ -76,90 +77,23 @@ func main() {
 
 	// Define the CLI application
 	app := &cli.App{
-		Name:  "chicle",
-		Usage: "Git User Manager - Platform-agnostic tool for managing multiple Git identities",
+		Name:    "chicle",
+		Usage:   "Git User Manager - Platform-agnostic tool for managing multiple Git identities",
+		Version: Version,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
-				Name:    "version",
-				Aliases: []string{"v"},
-				Usage:   "Print the version",
+				Name:        "verbose",
+				Aliases:     []string{"V"},
+				Usage:       "Enable verbose output",
+				Destination: &verbose,
 			},
-		},
-		Action: func(c *cli.Context) error {
-			if c.Bool("version") {
-				fmt.Printf("chicle version %s\n", Version)
-				return nil
-			}
-			cli.ShowAppHelp(c)
-			return nil
 		},
 		Commands: []*cli.Command{
-			{
-				Name:  "create",
-				Usage: "Create a new SSH key and Git identity or add an existing key",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:     "alias",
-						Aliases:  []string{"a"},
-						Usage:    "Alias for the Git identity",
-						Required: true,
-					},
-					&cli.StringFlag{
-						Name:     "email",
-						Aliases:  []string{"e"},
-						Usage:    "Email address for the SSH key",
-						Required: true,
-					},
-					&cli.StringFlag{
-						Name:     "name",
-						Aliases:  []string{"n"},
-						Usage:    "Git user name",
-						Required: true,
-					},
-					&cli.StringFlag{
-						Name:    "key",
-						Aliases: []string{"k"},
-						Usage:   "Path to an existing SSH key (optional)",
-					},
-					&cli.BoolFlag{
-						Name:    "global",
-						Aliases: []string{"g"},
-						Usage:   "Set the identity globally (optional)",
-					},
-				},
-				Action: createIdentity,
-			},
-			{
-				Name:      "switch",
-				Usage:     "Switch Git user",
-				ArgsUsage: "ALIAS",
-				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:    "global",
-						Aliases: []string{"g"},
-						Usage:   "Switch identity globally (optional)",
-					},
-				},
-				Action: switchUser,
-			},
-			{
-				Name:   "list",
-				Usage:  "List all stored Git identities",
-				Action: listIdentities,
-			},
-			{
-				Name:      "delete",
-				Usage:     "Delete a Git identity",
-				ArgsUsage: "ALIAS",
-				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:    "global",
-						Aliases: []string{"g"},
-						Usage:   "Delete a global identity (optional)",
-					},
-				},
-				Action: deleteIdentity,
-			},
+			createCommand(),
+			switchCommand(),
+			deleteCommand(),
+			listCommand(),
+			configCommand(),
 		},
 	}
 
@@ -170,14 +104,111 @@ func main() {
 	}
 }
 
-// isGitRepository checks if the current directory is a Git repository
-func isGitRepository() bool {
-	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
-	err := cmd.Run()
-	return err == nil
+func createCommand() *cli.Command {
+	return &cli.Command{
+		Name:    "create",
+		Aliases: []string{"add"},
+		Usage:   "Create a new SSH key and Git identity or add an existing key",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:     "alias",
+				Aliases:  []string{"a"},
+				Usage:    "Alias for the Git identity",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "email",
+				Aliases:  []string{"e"},
+				Usage:    "Email address for the SSH key",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:     "name",
+				Aliases:  []string{"n"},
+				Usage:    "Git user name",
+				Required: true,
+			},
+			&cli.StringFlag{
+				Name:    "key",
+				Aliases: []string{"k"},
+				Usage:   "Path to an existing SSH key (optional)",
+			},
+			&cli.BoolFlag{
+				Name:    "global",
+				Aliases: []string{"g"},
+				Usage:   "Set the identity globally (optional)",
+			},
+		},
+		Action: createIdentity,
+	}
 }
 
-// createIdentity handles the creation of a new Git identity
+func switchCommand() *cli.Command {
+	return &cli.Command{
+		Name:    "switch",
+		Aliases: []string{"use"},
+		Usage:   "Switch Git user",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "global",
+				Aliases: []string{"g"},
+				Usage:   "Switch identity globally",
+			},
+		},
+		Action: func(c *cli.Context) error {
+			isGlobal := false
+			for _, arg := range os.Args {
+				if arg == "--global" || arg == "-g" {
+					isGlobal = true
+					break
+				}
+			}
+			fmt.Printf("Debug: Inside switch command action, isGlobal: %v\n", isGlobal)
+			fmt.Printf("Debug: All args: %v\n", os.Args)
+			return switchUser(c, isGlobal)
+		},
+	}
+}
+
+func deleteCommand() *cli.Command {
+	return &cli.Command{
+		Name:    "delete",
+		Aliases: []string{"remove"},
+		Usage:   "Delete a Git identity",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:    "global",
+				Aliases: []string{"g"},
+				Usage:   "Delete a global identity",
+			},
+		},
+		Action: deleteIdentity,
+	}
+}
+
+func listCommand() *cli.Command {
+	return &cli.Command{
+		Name:    "list",
+		Aliases: []string{"ls"},
+		Usage:   "List all stored Git identities",
+		Action:  listIdentities,
+	}
+}
+
+func configCommand() *cli.Command {
+	return &cli.Command{
+		Name:  "config",
+		Usage: "Configure default behaviors",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "always-global",
+				Usage: "Set operations to always be global by default",
+			},
+		},
+		Action: configureDefaults,
+	}
+}
+
 func createIdentity(c *cli.Context) error {
 	alias := c.String("alias")
 	email := c.String("email")
@@ -185,16 +216,20 @@ func createIdentity(c *cli.Context) error {
 	existingKey := c.String("key")
 	isGlobal := c.Bool("global")
 
+	if verbose {
+		log.Printf("Creating identity - Alias: %s, Email: %s, Name: %s, Global: %v\n", alias, email, name, isGlobal)
+	}
+
 	if !isGlobal && !isGitRepository() {
-		return fmt.Errorf("not in a Git repository. Use -g flag to create a global identity")
+		return cli.NewExitError("Not in a Git repository. Use --global flag to create a global identity or navigate to a Git repository.", 1)
 	}
 
 	// Check if the alias already exists in either global or local configs
 	if _, exists := configs.Global[alias]; exists {
-		return fmt.Errorf("alias '%s' already exists as a global identity", alias)
+		return cli.NewExitError(fmt.Sprintf("Alias '%s' already exists as a global identity. Please choose a different alias.", alias), 1)
 	}
 	if _, exists := configs.Local[alias]; exists {
-		return fmt.Errorf("alias '%s' already exists as a local identity", alias)
+		return cli.NewExitError(fmt.Sprintf("Alias '%s' already exists as a local identity. Please choose a different alias.", alias), 1)
 	}
 
 	var keyPath string
@@ -202,7 +237,7 @@ func createIdentity(c *cli.Context) error {
 	if existingKey != "" {
 		// Check if the provided key exists and is valid
 		if err := validateExistingKey(existingKey); err != nil {
-			return err
+			return cli.NewExitError(err.Error(), 1)
 		}
 		keyPath = existingKey
 	} else {
@@ -210,7 +245,7 @@ func createIdentity(c *cli.Context) error {
 		homeDir, _ := os.UserHomeDir()
 		keyPath = filepath.Join(homeDir, ".ssh", fmt.Sprintf("id_rsa_%s", alias))
 		if err := generateSSHKey(email, keyPath); err != nil {
-			return err
+			return cli.NewExitError(err.Error(), 1)
 		}
 	}
 
@@ -230,7 +265,7 @@ func createIdentity(c *cli.Context) error {
 
 	// Save the updated configurations
 	if err := saveConfigs(); err != nil {
-		return fmt.Errorf("error saving configuration: %v", err)
+		return cli.NewExitError(fmt.Sprintf("Error saving configuration: %v", err), 1)
 	}
 
 	// Set Git configs
@@ -251,7 +286,7 @@ func createIdentity(c *cli.Context) error {
 		cmd := exec.Command("sh", "-c", fmt.Sprintf("%s %s \"%s\"", gitConfigCmd, cfg[0], cfg[1]))
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("error setting Git config %s: %v\n%s", cfg[0], err, output)
+			return cli.NewExitError(fmt.Sprintf("Error setting Git config %s: %v\n%s", cfg[0], err, output), 1)
 		}
 	}
 
@@ -268,48 +303,48 @@ func createIdentity(c *cli.Context) error {
 	return nil
 }
 
-// switchUser handles switching to a different Git identity
-func switchUser(c *cli.Context) error {
-	if c.NArg() < 1 {
-		return fmt.Errorf("missing alias argument. Usage: chicle switch ALIAS")
+func switchUser(c *cli.Context, isGlobal bool) error {
+	args := c.Args()
+	if args.Len() < 1 {
+		return cli.NewExitError("Missing alias argument. Usage: chicle switch [--global] ALIAS", 1)
 	}
-	alias := c.Args().First()
-	isGlobal := c.Bool("global")
+	alias := args.First()
 
-	// Check if we're in a Git repository only if we're not switching globally
-	if !isGlobal {
-		if !isGitRepository() {
-			return fmt.Errorf("not in a Git repository. Use --global flag to switch globally")
-		}
-	}
+	fmt.Printf("Debug: switchUser called with alias: %s, isGlobal: %v\n", alias, isGlobal)
+	fmt.Printf("Debug: All args: %v\n", os.Args)
+	fmt.Printf("Debug: Global configs: %+v\n", configs.Global)
+	fmt.Printf("Debug: Local configs: %+v\n", configs.Local)
 
 	var config UserConfig
 	var ok bool
 
 	if isGlobal {
+		fmt.Println("Debug: Checking global configs")
 		config, ok = configs.Global[alias]
-		if !ok {
-			return fmt.Errorf("no global identity found for alias '%s'", alias)
-		}
 	} else {
+		fmt.Println("Debug: Checking local configs")
 		config, ok = configs.Local[alias]
-		if !ok {
-			return fmt.Errorf("no local identity found for alias '%s'", alias)
-		}
+	}
+
+	fmt.Printf("Debug: Config found: %v, Config: %+v\n", ok, config)
+
+	if !ok {
+		scopeType := map[bool]string{true: "global", false: "local"}[isGlobal]
+		return cli.NewExitError(fmt.Sprintf("No %s identity found for alias '%s'. Use 'chicle list' to see available identities.", scopeType, alias), 1)
 	}
 
 	// Clear existing SSH keys from the agent
 	cmd := exec.Command("ssh-add", "-D")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("error clearing SSH keys: %v\n%s", err, output)
+		return cli.NewExitError(fmt.Sprintf("Error clearing SSH keys: %v\n%s", err, output), 1)
 	}
 
 	// Add the new SSH key
 	cmd = exec.Command("ssh-add", config.KeyPath)
 	output, err = cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("error adding SSH key: %v\n%s", err, output)
+		return cli.NewExitError(fmt.Sprintf("Error adding SSH key: %v\n%s", err, output), 1)
 	}
 
 	// Set Git configs
@@ -330,7 +365,7 @@ func switchUser(c *cli.Context) error {
 		cmd := exec.Command("sh", "-c", fmt.Sprintf("%s %s \"%s\"", gitConfigCmd, cfg[0], cfg[1]))
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			return fmt.Errorf("error setting Git config %s: %v\n%s", cfg[0], err, output)
+			return cli.NewExitError(fmt.Sprintf("Error setting Git config %s: %v\n%s", cfg[0], err, output), 1)
 		}
 	}
 
@@ -344,13 +379,16 @@ func switchUser(c *cli.Context) error {
 	return nil
 }
 
-// deleteIdentity handles the deletion of a Git identity
 func deleteIdentity(c *cli.Context) error {
 	if c.NArg() < 1 {
-		return fmt.Errorf("missing alias argument. Usage: chicle delete ALIAS")
+		return cli.NewExitError("Missing alias argument. Usage: chicle delete [--global] ALIAS", 1)
 	}
 	alias := c.Args().First()
 	isGlobal := c.Bool("global")
+
+	if verbose {
+		log.Printf("Deleting identity - Alias: %s, Global: %v\n", alias, isGlobal)
+	}
 
 	var config UserConfig
 	var ok bool
@@ -358,20 +396,20 @@ func deleteIdentity(c *cli.Context) error {
 	if isGlobal {
 		config, ok = configs.Global[alias]
 		if !ok {
-			return fmt.Errorf("no global identity found for alias '%s'", alias)
+			return cli.NewExitError(fmt.Sprintf("No global identity found for alias '%s'. Use 'chicle list' to see available identities.", alias), 1)
 		}
 		delete(configs.Global, alias)
 	} else {
 		config, ok = configs.Local[alias]
 		if !ok {
-			return fmt.Errorf("no local identity found for alias '%s'", alias)
+			return cli.NewExitError(fmt.Sprintf("No local identity found for alias '%s'. Use 'chicle list' to see available identities.", alias), 1)
 		}
 		delete(configs.Local, alias)
 	}
 
 	// Save the updated configurations
 	if err := saveConfigs(); err != nil {
-		return fmt.Errorf("error saving configuration: %v", err)
+		return cli.NewExitError(fmt.Sprintf("Error saving configuration: %v", err), 1)
 	}
 
 	fmt.Printf("Identity '%s' (%s) has been deleted.\n", alias, config.Email)
@@ -380,7 +418,6 @@ func deleteIdentity(c *cli.Context) error {
 	return nil
 }
 
-// listIdentities displays all stored Git identities
 func listIdentities(c *cli.Context) error {
 	fmt.Println("Global Git Identities:")
 	for alias, config := range configs.Global {
@@ -392,6 +429,28 @@ func listIdentities(c *cli.Context) error {
 		fmt.Printf("- Alias: %s\n  Name: %s\n  Email: %s\n  Key: %s\n\n", alias, config.Name, config.Email, config.KeyPath)
 	}
 	return nil
+}
+
+func configureDefaults(c *cli.Context) error {
+	alwaysGlobal := c.Bool("always-global")
+
+	if verbose {
+		log.Printf("Configuring defaults - Always Global: %v\n", alwaysGlobal)
+	}
+
+	// Implementation of configuration storage and application
+	// This is a placeholder and should be implemented based on how you want to store and use these configurations
+	fmt.Printf("Default behavior set: Always Global = %v\n", alwaysGlobal)
+	fmt.Println("Note: This feature is not fully implemented yet.")
+
+	return nil
+}
+
+// isGitRepository checks if the current directory is a Git repository
+func isGitRepository() bool {
+	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	err := cmd.Run()
+	return err == nil
 }
 
 // validateExistingKey checks if the provided key exists and is valid
