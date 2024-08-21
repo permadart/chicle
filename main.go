@@ -12,7 +12,7 @@ import (
 )
 
 // Version of the chicle tool
-const Version = "0.0.3"
+const Version = "0.0.3+1"
 
 // UserConfig stores the configuration for each Git identity
 type UserConfig struct {
@@ -163,8 +163,8 @@ func switchCommand() *cli.Command {
 					break
 				}
 			}
-			fmt.Printf("Debug: Inside switch command action, isGlobal: %v\n", isGlobal)
-			fmt.Printf("Debug: All args: %v\n", os.Args)
+			//fmt.Printf("Debug: Inside switch command action, isGlobal: %v\n", isGlobal)
+			//fmt.Printf("Debug: All args: %v\n", os.Args)
 			return switchUser(c, isGlobal)
 		},
 	}
@@ -310,23 +310,23 @@ func switchUser(c *cli.Context, isGlobal bool) error {
 	}
 	alias := args.First()
 
-	fmt.Printf("Debug: switchUser called with alias: %s, isGlobal: %v\n", alias, isGlobal)
-	fmt.Printf("Debug: All args: %v\n", os.Args)
-	fmt.Printf("Debug: Global configs: %+v\n", configs.Global)
-	fmt.Printf("Debug: Local configs: %+v\n", configs.Local)
+	//fmt.Printf("Debug: switchUser called with alias: %s, isGlobal: %v\n", alias, isGlobal)
+	//fmt.Printf("Debug: All args: %v\n", os.Args)
+	//fmt.Printf("Debug: Global configs: %+v\n", configs.Global)
+	//fmt.Printf("Debug: Local configs: %+v\n", configs.Local)
 
 	var config UserConfig
 	var ok bool
 
 	if isGlobal {
-		fmt.Println("Debug: Checking global configs")
+		//fmt.Println("Debug: Checking global configs")
 		config, ok = configs.Global[alias]
 	} else {
-		fmt.Println("Debug: Checking local configs")
+		//fmt.Println("Debug: Checking local configs")
 		config, ok = configs.Local[alias]
 	}
 
-	fmt.Printf("Debug: Config found: %v, Config: %+v\n", ok, config)
+	//fmt.Printf("Debug: Config found: %v, Config: %+v\n", ok, config)
 
 	if !ok {
 		scopeType := map[bool]string{true: "global", false: "local"}[isGlobal]

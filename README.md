@@ -14,6 +14,11 @@ chicle is a platform-agnostic command-line tool for managing multiple Git identi
 - Version checking functionality
 - Verbose mode for detailed output
 
+## ToDo
+- Configure default behaviors
+- Edit existing identities
+- Move/copy existing identities
+
 ## Installation
 
 ### Using Homebrew
@@ -128,12 +133,6 @@ chicle list
 ```
 
 Alias: `chicle ls`
-
-### Configure default behaviors
-
-```bash
-chicle config --always-global
-```
 
 ### Check chicle version
 
