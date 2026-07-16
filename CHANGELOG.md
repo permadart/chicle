@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.4+1] - 2026-07-16
+
+### Added
+- Confirmation prompts for `delete` and `edit` commands to prevent accidental operations
+- `--yes` flag to skip confirmation prompts for `delete` and `edit` commands
+
+### Changed
+- `switch` command now falls back to the opposite scope with a warning when alias not found
+  - Local switch falls back to global configs automatically
+  - Global switch falls back to local configs (applies locally if in a repo)
+
 ## [0.0.3+1] - 2024-08-21
 
 ### Changed

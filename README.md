@@ -118,12 +118,30 @@ Alias: `chicle switch-local`
 chicle delete user1 --global
 ```
 
-Alias: `chicle remove`
+Aliases: `chicle remove`
+
+**Confirmation prompts**: By default you’ll be asked to confirm the delete action. Use the `--yes` flag to skip this prompt.
+
+```bash
+chicle delete user1 --global --yes
+```
 
 ### Delete a Git identity (local)
 
 ```bash
 chicle delete user1
+```
+
+### Edit a Git identity
+
+```bash
+chicle edit --alias user1 --email new@example.com --global
+```
+
+**Confirmation prompts**: Edit actions also prompt for confirmation. Use `--yes` to skip.
+
+```bash
+chicle edit --alias user1 --email new@example.com --global --yes
 ```
 
 ### List all identities
