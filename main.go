@@ -434,12 +434,12 @@ func switchWithConfig(alias string, config UserConfig, isGlobal bool) error {
 	return nil
 }
 
-func confirmAction(alias string, scope string) bool {
+func confirmAction(action, alias, scope string) bool {
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Printf("Are you sure you want to %s identity '%s'? (Type 'yes' to confirm): ", scope, alias)
+	fmt.Printf("Are you sure you want to %s %s identity '%s'? (Type 'yes' to confirm): ", action, scope, alias)
 	scanner.Scan()
 	response := strings.TrimSpace(scanner.Text())
-	return response == "yes"
+	return response == "yes" || response == "y"
 }
 
 func deleteIdentity(c *cli.Context) error {
@@ -478,7 +478,7 @@ func deleteIdentity(c *cli.Context) error {
 		return cli.NewExitError(fmt.Sprintf("Error saving configuration: %v", err), 1)
 	}
 
-	if !showYes && !confirmAction(alias, scope) {
+	if !showYes && !confirmAction("delete", alias, scope) {
 		return cli.NewExitError("Delete operation cancelled by user.", 1)
 	}
 
@@ -494,6 +494,7 @@ func editIdentity(c *cli.Context) error {
 	newName := c.String("name")
 	newKey := c.String("key")
 	isGlobal := c.Bool("global")
+	showYes := c.Bool("yes")
 
 	if verbose {
 		log.Printf("Editing identity - Alias: %s, Global: %v, NewEmail: %s, NewName: %s, NewKey: %s\n", alias, isGlobal, newEmail, newName, newKey)
@@ -520,6 +521,10 @@ func editIdentity(c *cli.Context) error {
 	// Check if at least one field is being updated
 	if newEmail == "" && newName == "" && newKey == "" {
 		return cli.NewExitError("Nothing to update. Provide at least one of --email, --name, or --key", 1)
+	}
+
+	if !showYes && !confirmAction("edit", alias, scope) {
+		return cli.NewExitError("Edit operation cancelled by user.", 1)
 	}
 
 	// Validate new key if provided
