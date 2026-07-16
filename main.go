@@ -166,8 +166,6 @@ func switchCommand() *cli.Command {
 					break
 				}
 			}
-			//fmt.Printf("Debug: Inside switch command action, isGlobal: %v\n", isGlobal)
-			//fmt.Printf("Debug: All args: %v\n", os.Args)
 			return switchUser(c, isGlobal)
 		},
 	}
@@ -437,58 +435,57 @@ func switchWithConfig(alias string, config UserConfig, isGlobal bool) error {
 }
 
 func confirmAction(alias string, scope string) bool {
-  scanner := bufio.NewScanner(os.Stdin)
-  fmt.Printf("Are you sure you want to %s identity '%s'? (Type 'yes' to confirm): ", scope, alias)
-  scanner.Scan()
-  response := strings.TrimSpace(scanner.Text())
-  return response == "yes"
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Printf("Are you sure you want to %s identity '%s'? (Type 'yes' to confirm): ", scope, alias)
+	scanner.Scan()
+	response := strings.TrimSpace(scanner.Text())
+	return response == "yes"
 }
 
 func deleteIdentity(c *cli.Context) error {
-  if c.NArg() < 1 {
-    return cli.NewExitError("Missing alias argument. Usage: chicle delete [--global] ALIAS", 1)
-  }
-  alias := c.Args().First()
-  isGlobal := c.Bool("global")
-  showYes := c.Bool("yes")
+	if c.NArg() < 1 {
+		return cli.NewExitError("Missing alias argument. Usage: chicle delete [--global] ALIAS", 1)
+	}
+	alias := c.Args().First()
+	isGlobal := c.Bool("global")
+	showYes := c.Bool("yes")
 
-  if verbose {
-    log.Printf("Deleting identity - Alias: %s, Global: %v\n", alias, isGlobal)
-  }
+	if verbose {
+		log.Printf("Deleting identity - Alias: %s, Global: %v\n", alias, isGlobal)
+	}
 
-  var config UserConfig
-  var ok bool
-  var scope string
+	var config UserConfig
+	var ok bool
+	var scope string
 
-  if isGlobal {
-    config, ok = configs.Global[alias]
-    if !ok {
-      return cli.NewExitError(fmt.Sprintf("No global identity found for alias '%s'. Use 'chicle list' to see available identities.", alias), 1)
-    }
-    scope = "global"
-    delete(configs.Global, alias)
-  } else {
-    config, ok = configs.Local[alias]
-    if !ok {
-      return cli.NewExitError(fmt.Sprintf("No local identity found for alias '%s'. Use 'chicle list' to see available identities.", alias), 1)
-    }
-    scope = "local"
-    delete(configs.Local, alias)
-  }
+	if isGlobal {
+		config, ok = configs.Global[alias]
+		if !ok {
+			return cli.NewExitError(fmt.Sprintf("No global identity found for alias '%s'. Use 'chicle list' to see available identities.", alias), 1)
+		}
+		scope = "global"
+		delete(configs.Global, alias)
+	} else {
+		config, ok = configs.Local[alias]
+		if !ok {
+			return cli.NewExitError(fmt.Sprintf("No local identity found for alias '%s'. Use 'chicle list' to see available identities.", alias), 1)
+		}
+		scope = "local"
+		delete(configs.Local, alias)
+	}
 
-  // Save the updated configurations
-  if err := saveConfigs(); err != nil {
-    return cli.NewExitError(fmt.Sprintf("Error saving configuration: %v", err), 1)
-  }
+	if err := saveConfigs(); err != nil {
+		return cli.NewExitError(fmt.Sprintf("Error saving configuration: %v", err), 1)
+	}
 
-  if !showYes && !confirmAction(alias, scope) {
-    return cli.NewExitError(fmt.Sprintf("Delete operation cancelled by user.", alias), 1)
-  }
+	if !showYes && !confirmAction(alias, scope) {
+		return cli.NewExitError("Delete operation cancelled by user.", 1)
+	}
 
-  fmt.Printf("Identity '%s' (%s) has been deleted.\n", alias, config.Email)
-  fmt.Println("Note: The associated SSH key file was not deleted. You may want to remove it manually if it's no longer needed.")
+	fmt.Printf("Identity '%s' (%s) has been deleted.\n", alias, config.Email)
+	fmt.Println("Note: The associated SSH key file was not deleted. You may want to remove it manually if it's no longer needed.")
 
-  return nil
+	return nil
 }
 
 func editIdentity(c *cli.Context) error {
