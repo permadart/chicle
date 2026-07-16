@@ -165,9 +165,11 @@ chicle -v
 ## Important Notes
 
 - When creating or switching to a local identity, you must be inside a Git repository. If you're not in a Git repository, chicle will return an error and prompt you to use the `--global` flag.
+- If an alias is not found in the requested scope, chicle will automatically search the opposite scope and apply it with a warning message.
 - Aliases must be unique across both global and local identities. chicle will prevent you from creating an identity with an alias that already exists in either scope.
 - The `list` command shows both global and local identities separately for better clarity.
 - When switching identities, chicle clears existing SSH keys from the agent before adding the new one to ensure a clean switch.
+- `delete` and `edit` commands now prompt for confirmation before executing. Use the `--yes` flag to skip the confirmation prompt.
 
 ## Error Messages and Troubleshooting
 
@@ -175,7 +177,8 @@ chicle provides informative error messages to guide you:
 
 - If you're not in a Git repository for local operations, you'll be prompted to use the `--global` flag or navigate to a Git repository.
 - If an alias already exists, you'll be informed and asked to choose a different alias.
-- If an identity is not found during switch or delete operations, you'll be prompted to use the `list` command to see available identities.
+- If an identity is not found during switch or delete operations, chicle will auto-search the opposite scope and apply it with a warning message.
+- `delete` and `edit` commands require confirmation by default. Pass `--yes` to bypass the prompt.
 
 For more detailed output, use the `--verbose` flag with any command.
 
